@@ -5,6 +5,7 @@
       this.connection = null;
       this.connected = false;
       this.isTyping = false;
+      this.uploadingImage = false;
       this.messages = [];
       this.hubUrl = root.dataset.hubUrl || "/hubs/audit-chat";
       this.botName = root.dataset.botName || "ChatBot AI";
@@ -25,6 +26,7 @@
       this.statusEl = this.root.querySelector('[data-role="connection-status"]');
       this.botNameEl = this.root.querySelector('[data-role="bot-name"]');
       this.messagesEl = this.root.querySelector('[data-role="messages"]');
+      this.imagePreviewEl = this.root.querySelector('[data-role="image-preview"]');
       this.inputEl = this.root.querySelector('[data-input="message"]');
       this.sendBtnEl = this.root.querySelector('[data-action="send"]');
       this.attachBtnEl = this.root.querySelector('[data-action="attach"]');
@@ -41,7 +43,11 @@
 
       if (this.attachBtnEl) {
         this.attachBtnEl.addEventListener('click', () => {
-          window.alert('Los adjuntos todavía no están expuestos por el hub SignalR.');
+          if (!this.connected || !this.fileInputEl || this.uploadingImage) {
+            return;
+          }
+
+          this.fileInputEl.click();
         });
       }
 
@@ -53,8 +59,13 @@
 
       if (this.fileInputEl) {
         this.fileInputEl.addEventListener('change', () => {
+          const file = this.fileInputEl.files && this.fileInputEl.files[0] ? this.fileInputEl.files[0] : null;
+          if (!file) {
+            return;
+          }
+
+          this.handleImageSelected(file);
           this.fileInputEl.value = '';
-          window.alert('Los adjuntos todavía no están expuestos por el hub SignalR.');
         });
       }
 
@@ -99,7 +110,7 @@
     }
 
     updateInputState() {
-      const enabled = this.connected;
+      const enabled = this.connected && !this.uploadingImage;
       if (this.inputEl) {
         this.inputEl.disabled = !enabled;
       }
@@ -109,8 +120,8 @@
       }
 
       if (this.attachBtnEl) {
-        this.attachBtnEl.disabled = true;
-        this.attachBtnEl.title = 'Los adjuntos no están disponibles con SignalR';
+        this.attachBtnEl.disabled = !enabled;
+        this.attachBtnEl.title = this.uploadingImage ? 'Procesando imagen...' : 'Adjuntar imagen';
       }
     }
 
@@ -217,6 +228,94 @@
       if (this.inputEl) {
         this.inputEl.value = '';
       }
+    }
+
+    handleImageSelected(file) {
+      if (!this.connected || this.uploadingImage) {
+        return;
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedTypes.indexOf(file.type) < 0) {
+        window.alert('Tipo de imagen no soportado. Usa JPEG, PNG, GIF o WebP.');
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        window.alert('La imagen es demasiado grande. El máximo es 5MB.');
+        return;
+      }
+
+      const previewUrl = URL.createObjectURL(file);
+      this.renderImagePreview(previewUrl);
+      this.uploadImage(file, previewUrl);
+    }
+
+    uploadImage(file, previewUrl) {
+      this.uploadingImage = true;
+      this.updateInputState();
+
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+
+      fetch(this.getImageUploadUrl(), {
+        method: 'POST',
+        body: formData,
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('No se pudo procesar la imagen');
+          }
+
+          return response.json();
+        })
+        .then((result) => {
+          const assistantMessage =
+            (result && (result.assistantMessage || result.AssistantMessage)) ||
+            'Imagen recibida y analizada.';
+
+          this.addMessage('📷 Imagen enviada', 'user', previewUrl);
+          this.addMessage(assistantMessage, 'bot');
+          this.renderMessages();
+          this.scrollToBottom();
+          this.clearImagePreview();
+        })
+        .catch((error) => {
+          this.clearImagePreview();
+          window.alert(error && error.message ? error.message : 'No se pudo cargar la imagen');
+        })
+        .finally(() => {
+          this.uploadingImage = false;
+          this.updateInputState();
+        });
+    }
+
+    renderImagePreview(previewUrl) {
+      if (!this.imagePreviewEl) {
+        return;
+      }
+
+      this.imagePreviewEl.innerHTML =
+        '<div class="chatbot-preview-chip">' +
+          '<img src="' + previewUrl + '" alt="Vista previa" />' +
+        '</div>';
+    }
+
+    clearImagePreview() {
+      if (!this.imagePreviewEl) {
+        return;
+      }
+
+      this.imagePreviewEl.innerHTML = '';
+    }
+
+    getImageUploadUrl() {
+      const hubEndpoint = new URL(this.hubUrl, window.location.href);
+      const hubsIndex = hubEndpoint.pathname.indexOf('/hubs/');
+      const basePath = hubsIndex >= 0 ? hubEndpoint.pathname.slice(0, hubsIndex) : '';
+      const uploadPath = (basePath + '/api/audit/' + encodeURIComponent(this.sessionId) + '/image').replace(/\/{2,}/g, '/');
+      return new URL(uploadPath, hubEndpoint.origin).toString();
     }
 
     addMessage(text, sender, imageUrl) {
