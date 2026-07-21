@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Chatbot.Application/Chatbot.Application.csproj" />
+  <Project Path="Chatbot.Client/Chatbot.Client.csproj" Id="7bdf346a-593d-48b3-860d-02dee799fb1a" />
+  <Project Path="Chatbot.Domain/Chatbot.Domain.csproj" />
+  <Project Path="Chatbot.Infrastructure/Chatbot.Infrastructure.csproj" />
+  <Project Path="Chatbot.WebApi/Chatbot.WebApi.csproj" />
+</Solution>

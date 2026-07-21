@@ -1,0 +1,32 @@
+project:
+  name: chatbot-ia-agent-vision
+  seed: 42
+  task: detect
+  framework: yolo
+
+paths:
+  datasets_root: ./datasets
+  raw_dataset: ./datasets/raw
+  processed_dataset: ./datasets/processed
+  images_root: ./datasets/images
+  labels_root: ./datasets/labels
+  models_root: ./models
+  exports_root: ./exports
+  logs_root: ./models/logs
+
+training:
+  device: auto
+  imgsz: 640
+  batch: 16
+  epochs: 100
+  workers: 8
+  patience: 20
+  optimizer: auto
+
+evaluation:
+  conf_threshold: 0.25
+  iou_threshold: 0.50
+
+inference:
+  default_model_path: ./models/latest.pt
+  conf_threshold: 0.30

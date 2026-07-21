@@ -1,0 +1,51 @@
+@model Chatbot.Client.Models.ChatbotWidgetOptions
+
+<section
+    class="chatbot-widget chatbot-theme-@Model.Theme"
+    data-chatbot-widget
+    data-hub-url="@Model.HubUrl"
+    data-bot-name="@Model.BotName"
+    data-theme="@Model.Theme"
+    data-session-id="@Model.SessionId"
+    data-user-name="@Model.UserName"
+    data-user-phone="@Model.UserPhone"
+    data-id-cliente="@Model.IdCliente"
+    data-welcome-message="@Model.WelcomeMessage"
+    data-placeholder="@Model.Placeholder">
+    <div class="chatbot-shell">
+        <div class="chatbot-status chatbot-status-disconnected" data-role="connection-status" aria-live="polite">
+            Conectando al servidor...
+        </div>
+
+        <header class="chatbot-header">
+            <div>
+                <div class="chatbot-kicker">Asistente virtual</div>
+                <h1 class="chatbot-title" data-role="bot-name">@Model.BotName</h1>
+            </div>
+
+            <div class="chatbot-session">
+                Sesión @Model.SessionId[..Math.Min(Model.SessionId.Length, 8)]
+            </div>
+        </header>
+
+        <div class="chatbot-messages" data-role="messages" aria-live="polite"></div>
+
+        <footer class="chatbot-composer">
+            <div class="chatbot-image-preview" data-role="image-preview"></div>
+
+            <div class="chatbot-input-row">
+                <button class="chatbot-icon-button" type="button" data-action="attach" title="Adjuntar imagen">📎</button>
+                <button class="chatbot-icon-button" type="button" data-action="faq" title="Preguntas frecuentes">?</button>
+                <input
+                    class="chatbot-input"
+                    type="text"
+                    placeholder="@Model.Placeholder"
+                    data-input="message"
+                    disabled />
+                <button class="chatbot-send-button" type="button" data-action="send" disabled>Enviar</button>
+            </div>
+
+            <input type="file" data-input="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+        </footer>
+    </div>
+</section>

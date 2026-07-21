@@ -1,0 +1,9 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Chatbot";
+}
+
+<div class="chatbot-page">
+    @await Component.InvokeAsync("ChatbotWidget")
+</div>

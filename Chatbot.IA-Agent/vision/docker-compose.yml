@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  cvat_db:
+    image: postgres:15-alpine
+    container_name: cvat_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CVAT_POSTGRES_DB:-cvat}
+      POSTGRES_USER: ${CVAT_POSTGRES_USER:-cvat}
+      POSTGRES_PASSWORD: ${CVAT_POSTGRES_PASSWORD:-cvat}
+    volumes:
+      - ./cvat/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CVAT_POSTGRES_USER:-cvat} -d ${CVAT_POSTGRES_DB:-cvat}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cvat_redis:
+    image: redis:7-alpine
+    container_name: cvat_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${CVAT_REDIS_PASSWORD:-cvatredis}"]
+    volumes:
+      - ./cvat/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${CVAT_REDIS_PASSWORD:-cvatredis}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cvat_server:
+    image: cvat/server:latest
+    container_name: cvat_server
+    restart: unless-stopped
+    depends_on:
+      cvat_db:
+        condition: service_healthy
+      cvat_redis:
+        condition: service_healthy
+    environment:
+      CVAT_HOST: ${CVAT_HOST:-localhost}
+      CVAT_REDIS_PASSWORD: ${CVAT_REDIS_PASSWORD:-cvatredis}
+      POSTGRES_DB: ${CVAT_POSTGRES_DB:-cvat}
+      POSTGRES_USER: ${CVAT_POSTGRES_USER:-cvat}
+      POSTGRES_PASSWORD: ${CVAT_POSTGRES_PASSWORD:-cvat}
+      DJANGO_SETTINGS_MODULE: cvat.settings.production
+      DJANGO_SECRET_KEY: ${CVAT_SECRET_KEY:-replace-with-long-random-secret}
+      ALLOWED_HOSTS: "*"
+      CVAT_ALLOW_STATIC_CACHE: "false"
+      SMOKESCREEN_ENABLED: "false"
+      CVAT_REDIS_HOST: cvat_redis
+      CVAT_POSTGRES_HOST: cvat_db
+    ports:
+      - "${CVAT_SERVER_PORT:-8080}:8080"
+    volumes:
+      - ./cvat/data/files:/home/django/share
+
+  cvat_ui:
+    image: cvat/ui:latest
+    container_name: cvat_ui
+    restart: unless-stopped
+    depends_on:
+      - cvat_server
+    environment:
+      CVAT_UI_HOST: ${CVAT_HOST:-localhost}
+      CVAT_UI_PORT: ${CVAT_SERVER_PORT:-8080}
+    ports:
+      - "${CVAT_UI_PORT:-8081}:80"
+
