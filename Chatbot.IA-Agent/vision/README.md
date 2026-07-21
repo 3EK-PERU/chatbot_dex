@@ -17,3 +17,15 @@ Plataforma MLOps para entrenamiento y despliegue de deteccion de productos en ED
 ## CVAT local
 
 La configuracion de etiquetado local con Docker Compose esta en [cvat/README.md](cvat/README.md).
+
+## Entrenamiento
+
+El entrypoint de entrenamiento se ejecuta desde esta carpeta:
+
+```bash
+python train.py --run-name baseline_v1
+```
+
+Se generan artefactos en `models/` y un resumen por corrida en `exports/<run>.summary.json`.
+
+Para seguimiento de trabajo pendiente en local, revisar `PENDIENTES_LOCAL.md`.
